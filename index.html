@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego de Memoria - 2 Jugadores</title>
+<style>
+    * { box-sizing: border-box; }
+  body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding: 16px; margin: 0; }
+  h1 { font-size: clamp(22px, 5vw, 32px); }
+  .marcador { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; max-width: 600px; margin: 10px auto; }
+  .jugador { flex: 1; min-width: 140px; padding: 12px; border-radius: 12px; background: white; border: 3px solid transparent; }
+  .jugador.activo { border-color: #000; background: #fff8c5; }
+  .jugador .nombre { font-weight: bold; font-size: 17px; }
+  .jugador .puntos { font-size: 26px; }
+  .controles { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; max-width: 600px; margin: 10px auto; }
+  input, select, button { padding: 11px; font-size: 15px; border-radius: 10px; border: 1px solid #ccc; width: 100%; max-width: 180px; }
+  button { background: black; color: white; border: none; cursor: pointer; font-weight: bold; }
+  #tablero { display: grid; gap: 8px; max-width: 600px; margin: 16px auto; width: 100%; }
+  .carta { aspect-ratio: 1; background: #222; color: white; font-size: clamp(22px, 7vw, 36px); display: flex; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; user-select: none; }
+  .carta.volteada { background: white; }
+  .carta.acertada-j1 { background: #4CAF50; color: white; }
+  .carta.acertada-j2 { background: #2196F3; color: white; }
+  #mensaje { font-weight: bold; font-size: 18px; }
+  @media (max-width: 480px) {
+    #tablero { gap: 6px; }
+    .controles { flex-direction: column; align-items: center; }
+    input, select, button { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <h1>🧠 Juego de Memoria</h1>
+  <p>2 Jugadores | Movimientos: <span id="movs">0</span> | Tiempo: <span id="tiempo">0</span>s</p>
+
+  <div class="marcador">
+    <div id="cardJ1" class="jugador activo">
+      <div class="nombre">🔴 <span id="nombreJ1Texto">Jugador 1</span></div>
+      <div class="puntos"><span id="puntosJ1">0</span> parejas</div>
+    </div>
+    <div id="cardJ2" class="jugador">
+      <div class="nombre">🔵 <span id="nombreJ2Texto">Jugador 2</span></div>
+      <div class="puntos"><span id="puntosJ2">0</span> parejas</div>
+    </div>
+  </div>
+
+  <div class="controles">
+    <input id="nombreJ1" placeholder="Nombre Jugador 1" value="Jugador 1">
+    <input id="nombreJ2" placeholder="Nombre Jugador 2" value="Jugador 2">
+    <select id="tema">
+      <option value="frutas">🍎 Frutas</option>
+      <option value="animales">🐶 Animales</option>
+      <option value="coches">🚗 Coches</option>
+      <option value="deportes">⚽ Deportes</option>
+    </select>
+    <select id="nivel">
+      <option value="facil">Fácil - 12 cartas</option>
+      <option value="medio" selected>Medio - 16 cartas</option>
+      <option value="dificil">Difícil - 24 cartas</option>
+    </select>
+    <button onclick="reiniciar()">Nueva partida</button>
+  </div>
+
+  <div id="tablero"></div>
+  <p id="turno">Turno de: Jugador 1</p>
+  <p id="mensaje"></p>
+
+<script>
+const URL_APPSCRIPT = "PEGA_AQUI_TU_URL_EXEC";
+const TEMAS = {
+  frutas: ['🍎','🍌','🍇','🍓','🍉','🍊','🥝','🍍','🥭','🍒','🍑','🍋'],
+  animales: ['🐶','🐱','🦁','🐷','🐵','🐸','🐼','🐨','🦊','🐰','🐯','🦄'],
+  coches: ['🚗','🚕','🚙','🏎️','🚓','🚑','🚒','🚜','🚌','🚚','🏍️','🚲'],
+  deportes: ['⚽','🏀','🎾','🏊','🚴','🥊','🏋️','🎯','🏹','⛳','🏸','🥋']
+};
+let primera=null, bloqueo=false, movs=0, aciertos=0, segundos=0, timer=null, empezado=false, totalParejas=8;
+let turno=1, puntosJ1=0, puntosJ2=0;
+
+function actualizarMarcador(){
+  document.getElementById('puntosJ1').innerText = puntosJ1;
+  document.getElementById('puntosJ2').innerText = puntosJ2;
+  document.getElementById('cardJ1').classList.toggle('activo', turno===1);
+  document.getElementById('cardJ2').classList.toggle('activo', turno===2);
+  const n1 = document.getElementById('nombreJ1').value || 'Jugador 1';
+  const n2 = document.getElementById('nombreJ2').value || 'Jugador 2';
+  document.getElementById('nombreJ1Texto').innerText = n1;
+  document.getElementById('nombreJ2Texto').innerText = n2;
+  document.getElementById('turno').innerText = 'Turno de: ' + (turno===1 ? n1 : n2);
+}
+
+function reiniciar(){
+  const tema = document.getElementById('tema').value;
+  const nivel = document.getElementById('nivel').value;
+  let numParejas = nivel==='facil'?6 : nivel==='medio'?8:12;
+  totalParejas = numParejas;
+  let base = TEMAS[tema].slice(0, numParejas);
+  let cartas = [...base, ...base].sort(()=> Math.random()-0.5);
+  const tablero = document.getElementById('tablero');
+  tablero.innerHTML='';
+  tablero.style.gridTemplateColumns = nivel==='dificil' ? 'repeat(6, 1fr)' : 'repeat(4, 1fr)';
+  if(window.innerWidth < 480 && nivel==='dificil') tablero.style.gridTemplateColumns = 'repeat(4, 1fr)';
+  movs=0; aciertos=0; segundos=0; empezado=false; primera=null; bloqueo=false;
+  turno=1; puntosJ1=0; puntosJ2=0;
+  clearInterval(timer);
+  document.getElementById('movs').innerText=0;
+  document.getElementById('tiempo').innerText=0;
+  document.getElementById('mensaje').innerText='';
+  actualizarMarcador();
+  cartas.forEach(emoji=>{
+    const div=document.createElement('div');
+    div.className='carta'; div.innerText='?'; div.dataset.valor=emoji;
+    div.onclick=()=> voltear(div);
+    tablero.appendChild(div);
+  });
+}
+
+function voltear(carta){
+  if(bloqueo || carta.classList.contains('volteada')) return;
+  if(!empezado){ empezado=true; timer=setInterval(()=>{ segundos++; document.getElementById('tiempo').innerText=segundos; },1000); }
+  carta.classList.add('volteada'); carta.innerText=carta.dataset.valor;
+  if(!primera){ primera=carta; return; }
+  movs++; document.getElementById('movs').innerText=movs;
+  if(primera.dataset.valor===carta.dataset.valor){
+    if(turno===1){ carta.classList.add('acertada-j1'); primera.classList.add('acertada-j1'); puntosJ1++; } 
+    else { carta.classList.add('acertada-j2'); primera.classList.add('acertada-j2'); puntosJ2++; }
+    aciertos++; primera=null; actualizarMarcador();
+    if(aciertos===totalParejas) ganar();
+  } else {
+    bloqueo=true; const temp=primera;
+    setTimeout(()=>{
+      temp.classList.remove('volteada'); temp.innerText='?';
+      carta.classList.remove('volteada'); carta.innerText='?';
+      primera=null; bloqueo=false;
+      turno = turno===1 ? 2 : 1;
+      actualizarMarcador();
+    }, 800);
+  }
+}
+
+async function ganar(){
+  clearInterval(timer);
+  const n1=document.getElementById('nombreJ1').value||'Jugador 1';
+  const n2=document.getElementById('nombreJ2').value||'Jugador 2';
+  const tema=document.getElementById('tema').value;
+  const nivel=document.getElementById('nivel').value;
+  let ganador = puntosJ1>puntosJ2 ? n1 : puntosJ2>puntosJ1 ? n2 : 'Empate';
+  document.getElementById('mensaje').innerText = ganador==='Empate' ? `¡Empate! ${puntosJ1} - ${puntosJ2}` : `🏆 ¡Gana ${ganador}! ${puntosJ1} - ${puntosJ2}`;
+  try{
+    await fetch(URL_APPSCRIPT, { method:'POST', body: JSON.stringify({ nombre: `${n1} (${puntosJ1}) vs ${n2} (${puntosJ2}) - Gana: ${ganador} | ${tema} | ${nivel}`, movimientos: movs, tiempo: segundos }) });
+  }catch(e){}
+}
+
+document.getElementById('tema').addEventListener('change', reiniciar);
+document.getElementById('nivel').addEventListener('change', reiniciar);
+document.getElementById('nombreJ1').addEventListener('input', actualizarMarcador);
+document.getElementById('nombreJ2').addEventListener('input', actualizarMarcador);
+reiniciar();
+</script>
+</body>
+</html>
