@@ -58,4 +58,93 @@ async function crear(){
   document.getElementById('btnCrear').disabled = true;
   document.getElementById('btnCrear').innerText = 'Creando...';
   try{
-    const res = await fetch(URL, {
+    const res = await fetch(URL, {method:'POST', body: JSON.stringify({action:'crear', nombre: miNombre, tema})});
+    const data = await res.json();
+    if(data.error){ document.getElementById('error').innerText = data.error; return; }
+    codigo = data.code; soyJugador = 1;
+    entrarJuego();
+  }catch(e){ document.getElementById('error').innerText = 'Error de conexión, prueba otra vez'; document.getElementById('btnCrear').disabled=false; document.getElementById('btnCrear').innerText='Crear partida y dar código'; }
+}
+async function unirse(){
+  miNombre = document.getElementById('miNombre').value.trim() || 'Jugador 2';
+  codigo = document.getElementById('codigoUnirse').value.toUpperCase().trim();
+  if(!codigo) { document.getElementById('error').innerText='Pon el código'; return; }
+  try{
+    const res = await fetch(URL, {method:'POST', body: JSON.stringify({action:'unirse', code: codigo, nombre: miNombre})});
+    const data = await res.json();
+    if(data.error){ document.getElementById('error').innerText = 'Ese código no existe'; return; }
+    soyJugador = 2;
+    entrarJuego();
+  }catch(e){ document.getElementById('error').innerText = 'Error de conexión'; }
+}
+function entrarJuego(){
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('juego').style.display='block';
+  document.getElementById('codigoSala').innerText = codigo;
+  if(intervalo) clearInterval(intervalo);
+  intervalo = setInterval(actualizar, 1500);
+  actualizar();
+}
+async function actualizar(){
+  if(!codigo) return;
+  try{
+    const res = await fetch(URL + "?code=" + codigo);
+    const s = await res.json();
+    if(s.error) return;
+    estadoActual = s;
+    document.getElementById('n1').innerText = s.jugadores[0] || '...';
+    document.getElementById('n2').innerText = s.jugadores[1] || 'Esperando...';
+    document.getElementById('p1').innerText = s.puntos[0];
+    document.getElementById('p2').innerText = s.puntos[1];
+    document.getElementById('card1').classList.toggle('activo', s.turno===1);
+    document.getElementById('card2').classList.toggle('activo', s.turno===2);
+    document.getElementById('estado').innerText = s.empezado ? 'Partida en curso' : 'Esperando a que se una tu amigo...';
+    document.getElementById('turnoTexto').innerText = s.ganador ? '¡Fin!' : (!s.empezado ? 'Comparte el código' : (s.turno===soyJugador ? '👉 ES TU TURNO' : 'Esperando turno del otro...'));
+
+    const tablero = document.getElementById('tablero');
+    tablero.innerHTML='';
+    s.board.forEach((emoji, i)=>{
+      const div = document.createElement('div');
+      div.className='carta';
+      const esVolteada = s.volteadas.includes(i);
+      const esAcertada = s.acertadas.includes(i);
+      if(esAcertada){ div.classList.add('acertada'); div.innerText=emoji; }
+      else if(esVolteada){ div.classList.add('volteada'); div.innerText=emoji; }
+      else { div.innerText='?'; }
+      // Bloquear si no es tu turno, si ya hay 2 volteadas o si está pendiente tapar
+      const bloqueado = s.ganador || !s.empezado || s.turno !== soyJugador || s.pendienteTapar || s.volteadas.length >= 2;
+      if(bloqueado) div.classList.add('bloqueada');
+      div.onclick = ()=> jugar(i);
+      tablero.appendChild(div);
+    });
+
+    if(s.ganador){
+      document.getElementById('mensaje').innerText = s.ganador==='Empate' ? '¡Empate!' : '🏆 ¡Gana ' + s.ganador + '! ' + s.puntos[0] + ' - ' + s.puntos[1];
+    } else {
+      document.getElementById('mensaje').innerText = '';
+    }
+
+    // CORREGIDO: SOLO tapa el que tiene el turno (el que acaba de jugar). Antes tapaban los 2 y el turno se duplicaba.
+    if(s.pendienteTapar && s.turno === soyJugador && !yaTapando){
+      yaTapando=true;
+      setTimeout(async ()=>{
+        await fetch(URL, {method:'POST', body: JSON.stringify({action:'tapar', code: codigo})});
+        yaTapando=false;
+        actualizar();
+      }, 1500);
+    }
+  }catch(e){ /* si falla un tick, el siguiente lo arregla */ }
+}
+async function jugar(i){
+  if(!estadoActual || !estadoActual.empezado) return alert('Espera a que se una tu amigo');
+  if(estadoActual.turno !== soyJugador) return alert('No es tu turno');
+  if(estadoActual.ganador) return;
+  if(estadoActual.pendienteTapar) return;
+  if(estadoActual.volteadas.includes(i) || estadoActual.acertadas.includes(i)) return;
+  if(estadoActual.volteadas.length >= 2) return;
+  await fetch(URL, {method:'POST', body: JSON.stringify({action:'jugar', code: codigo, index: i})});
+  actualizar();
+}
+</script>
+</body>
+</html>
