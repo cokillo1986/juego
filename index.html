@@ -3,158 +3,126 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Juego de Memoria - 2 Jugadores</title>
+<title>Memoria Online 2 Jugadores</title>
 <style>
-    * { box-sizing: border-box; }
-  body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding: 16px; margin: 0; }
-  h1 { font-size: clamp(22px, 5vw, 32px); }
-  .marcador { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; max-width: 600px; margin: 10px auto; }
-  .jugador { flex: 1; min-width: 140px; padding: 12px; border-radius: 12px; background: white; border: 3px solid transparent; }
-  .jugador.activo { border-color: #000; background: #fff8c5; }
-  .jugador .nombre { font-weight: bold; font-size: 17px; }
-  .jugador .puntos { font-size: 26px; }
-  .controles { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; max-width: 600px; margin: 10px auto; }
-  input, select, button { padding: 11px; font-size: 15px; border-radius: 10px; border: 1px solid #ccc; width: 100%; max-width: 180px; }
-  button { background: black; color: white; border: none; cursor: pointer; font-weight: bold; }
-  #tablero { display: grid; gap: 8px; max-width: 600px; margin: 16px auto; width: 100%; }
-  .carta { aspect-ratio: 1; background: #222; color: white; font-size: clamp(22px, 7vw, 36px); display: flex; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; user-select: none; }
-  .carta.volteada { background: white; }
-  .carta.acertada-j1 { background: #4CAF50; color: white; }
-  .carta.acertada-j2 { background: #2196F3; color: white; }
-  #mensaje { font-weight: bold; font-size: 18px; }
-  @media (max-width: 480px) {
-    #tablero { gap: 6px; }
-    .controles { flex-direction: column; align-items: center; }
-    input, select, button { max-width: 100%; }
-  }
+  *{box-sizing:border-box} body{font-family:sans-serif;text-align:center;background:#f0f0f0;padding:16px;margin:0}
+  .caja{background:white;padding:16px;border-radius:12px;max-width:500px;margin:10px auto}
+  input,select,button{padding:12px;font-size:16px;border-radius:10px;border:1px solid #ccc;width:100%;margin:5px 0}
+  button{background:black;color:white;border:none;cursor:pointer;font-weight:bold}
+  button.sec{background:#2196F3}
+  #tablero{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:500px;margin:16px auto}
+  .carta{aspect-ratio:1;background:#222;color:white;font-size:32px;display:flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer}
+  .carta.volteada{background:white;color:black}
+  .carta.acertada{background:#4CAF50}
+  .jugador{padding:10px;border-radius:10px;background:white;border:3px solid transparent;display:inline-block;min-width:140px;margin:5px}
+  .jugador.activo{border-color:black;background:#fff8c5}
+  #codigoSala{font-size:28px;font-weight:bold;letter-spacing:4px;color:#2196F3}
 </style>
 </head>
 <body>
-  <h1>🧠 Juego de Memoria</h1>
-  <p>2 Jugadores | Movimientos: <span id="movs">0</span> | Tiempo: <span id="tiempo">0</span>s</p>
+<h1>🧠 Memoria Online</h1>
 
-  <div class="marcador">
-    <div id="cardJ1" class="jugador activo">
-      <div class="nombre">🔴 <span id="nombreJ1Texto">Jugador 1</span></div>
-      <div class="puntos"><span id="puntosJ1">0</span> parejas</div>
-    </div>
-    <div id="cardJ2" class="jugador">
-      <div class="nombre">🔵 <span id="nombreJ2Texto">Jugador 2</span></div>
-      <div class="puntos"><span id="puntosJ2">0</span> parejas</div>
-    </div>
+<div id="lobby" class="caja">
+  <h2>1. Pon tu nombre</h2>
+  <input id="miNombre" placeholder="Tu nombre, ej: Ana">
+  <select id="tema"><option value="frutas">🍎 Frutas</option><option value="animales">🐶 Animales</option><option value="coches">🚗 Coches</option><option value="deportes">⚽ Deportes</option></select>
+  <button onclick="crear()">Crear partida y dar código</button>
+  <p>— o —</p>
+  <input id="codigoUnirse" placeholder="Código, ej: AB12">
+  <button class="sec" onclick="unirse()">Unirse con código</button>
+  <p id="error"></p>
+</div>
+
+<div id="juego" style="display:none">
+  <div class="caja">
+    <p>Comparte este código con tu amigo:</p>
+    <div id="codigoSala"></div>
+    <p id="estado">Esperando a que se una tu amigo...</p>
+    <div><span id="card1" class="jugador activo"><b id="n1"></b><br><span id="p1">0</span> parejas</span> <span id="card2" class="jugador"><b id="n2"></b><br><span id="p2">0</span> parejas</span></div>
+    <p id="turnoTexto"></p>
   </div>
-
-  <div class="controles">
-    <input id="nombreJ1" placeholder="Nombre Jugador 1" value="Jugador 1">
-    <input id="nombreJ2" placeholder="Nombre Jugador 2" value="Jugador 2">
-    <select id="tema">
-      <option value="frutas">🍎 Frutas</option>
-      <option value="animales">🐶 Animales</option>
-      <option value="coches">🚗 Coches</option>
-      <option value="deportes">⚽ Deportes</option>
-    </select>
-    <select id="nivel">
-      <option value="facil">Fácil - 12 cartas</option>
-      <option value="medio" selected>Medio - 16 cartas</option>
-      <option value="dificil">Difícil - 24 cartas</option>
-    </select>
-    <button onclick="reiniciar()">Nueva partida</button>
-  </div>
-
   <div id="tablero"></div>
-  <p id="turno">Turno de: Jugador 1</p>
   <p id="mensaje"></p>
+  <button onclick="location.reload()">Salir / Nueva partida</button>
+</div>
 
 <script>
-const URL_APPSCRIPT = "PEGA_AQUI_TU_URL_EXEC";
-const TEMAS = {
-  frutas: ['🍎','🍌','🍇','🍓','🍉','🍊','🥝','🍍','🥭','🍒','🍑','🍋'],
-  animales: ['🐶','🐱','🦁','🐷','🐵','🐸','🐼','🐨','🦊','🐰','🐯','🦄'],
-  coches: ['🚗','🚕','🚙','🏎️','🚓','🚑','🚒','🚜','🚌','🚚','🏍️','🚲'],
-  deportes: ['⚽','🏀','🎾','🏊','🚴','🥊','🏋️','🎯','🏹','⛳','🏸','🥋']
-};
-let primera=null, bloqueo=false, movs=0, aciertos=0, segundos=0, timer=null, empezado=false, totalParejas=8;
-let turno=1, puntosJ1=0, puntosJ2=0;
+const URL = "PEGA_AQUI_TU_URL_EXEC";
+let codigo="", soyJugador=1, miNombre="", estadoActual=null, yaTapando=false;
 
-function actualizarMarcador(){
-  document.getElementById('puntosJ1').innerText = puntosJ1;
-  document.getElementById('puntosJ2').innerText = puntosJ2;
-  document.getElementById('cardJ1').classList.toggle('activo', turno===1);
-  document.getElementById('cardJ2').classList.toggle('activo', turno===2);
-  const n1 = document.getElementById('nombreJ1').value || 'Jugador 1';
-  const n2 = document.getElementById('nombreJ2').value || 'Jugador 2';
-  document.getElementById('nombreJ1Texto').innerText = n1;
-  document.getElementById('nombreJ2Texto').innerText = n2;
-  document.getElementById('turno').innerText = 'Turno de: ' + (turno===1 ? n1 : n2);
-}
-
-function reiniciar(){
+async function crear(){
+  miNombre = document.getElementById('miNombre').value || 'Jugador 1';
   const tema = document.getElementById('tema').value;
-  const nivel = document.getElementById('nivel').value;
-  let numParejas = nivel==='facil'?6 : nivel==='medio'?8:12;
-  totalParejas = numParejas;
-  let base = TEMAS[tema].slice(0, numParejas);
-  let cartas = [...base, ...base].sort(()=> Math.random()-0.5);
+  const res = await fetch(URL, {method:'POST', body: JSON.stringify({action:'crear', nombre: miNombre, tema})});
+  const data = await res.json();
+  codigo = data.code; soyJugador = 1;
+  entrarJuego();
+}
+async function unirse(){
+  miNombre = document.getElementById('miNombre').value || 'Jugador 2';
+  codigo = document.getElementById('codigoUnirse').value.toUpperCase().trim();
+  if(!codigo) return;
+  const res = await fetch(URL, {method:'POST', body: JSON.stringify({action:'unirse', code: codigo, nombre: miNombre})});
+  const data = await res.json();
+  if(data.error){ document.getElementById('error').innerText = 'Ese código no existe'; return; }
+  soyJugador = 2;
+  entrarJuego();
+}
+function entrarJuego(){
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('juego').style.display='block';
+  document.getElementById('codigoSala').innerText = codigo;
+  setInterval(actualizar, 2000);
+  actualizar();
+}
+async function actualizar(){
+  const res = await fetch(URL + "?code=" + codigo);
+  const s = await res.json();
+  if(s.error) return;
+  estadoActual = s;
+  document.getElementById('n1').innerText = s.jugadores[0] || '...';
+  document.getElementById('n2').innerText = s.jugadores[1] || 'Esperando...';
+  document.getElementById('p1').innerText = s.puntos[0];
+  document.getElementById('p2').innerText = s.puntos[1];
+  document.getElementById('card1').classList.toggle('activo', s.turno===1);
+  document.getElementById('card2').classList.toggle('activo', s.turno===2);
+  document.getElementById('estado').innerText = s.empezado ? 'Partida en curso' : 'Esperando a que se una tu amigo...';
+  document.getElementById('turnoTexto').innerText = s.ganador ? '¡Fin!' : (s.turno===soyJugador ? '👉 ES TU TURNO' : 'Esperando turno del otro...');
+
   const tablero = document.getElementById('tablero');
   tablero.innerHTML='';
-  tablero.style.gridTemplateColumns = nivel==='dificil' ? 'repeat(6, 1fr)' : 'repeat(4, 1fr)';
-  if(window.innerWidth < 480 && nivel==='dificil') tablero.style.gridTemplateColumns = 'repeat(4, 1fr)';
-  movs=0; aciertos=0; segundos=0; empezado=false; primera=null; bloqueo=false;
-  turno=1; puntosJ1=0; puntosJ2=0;
-  clearInterval(timer);
-  document.getElementById('movs').innerText=0;
-  document.getElementById('tiempo').innerText=0;
-  document.getElementById('mensaje').innerText='';
-  actualizarMarcador();
-  cartas.forEach(emoji=>{
-    const div=document.createElement('div');
-    div.className='carta'; div.innerText='?'; div.dataset.valor=emoji;
-    div.onclick=()=> voltear(div);
+  s.board.forEach((emoji, i)=>{
+    const div = document.createElement('div');
+    div.className='carta';
+    const esVolteada = s.volteadas.includes(i);
+    const esAcertada = s.acertadas.includes(i);
+    if(esAcertada){ div.classList.add('acertada'); div.innerText=emoji; }
+    else if(esVolteada){ div.classList.add('volteada'); div.innerText=emoji; }
+    else { div.innerText='?'; }
+    div.onclick = ()=> jugar(i);
     tablero.appendChild(div);
   });
-}
 
-function voltear(carta){
-  if(bloqueo || carta.classList.contains('volteada')) return;
-  if(!empezado){ empezado=true; timer=setInterval(()=>{ segundos++; document.getElementById('tiempo').innerText=segundos; },1000); }
-  carta.classList.add('volteada'); carta.innerText=carta.dataset.valor;
-  if(!primera){ primera=carta; return; }
-  movs++; document.getElementById('movs').innerText=movs;
-  if(primera.dataset.valor===carta.dataset.valor){
-    if(turno===1){ carta.classList.add('acertada-j1'); primera.classList.add('acertada-j1'); puntosJ1++; } 
-    else { carta.classList.add('acertada-j2'); primera.classList.add('acertada-j2'); puntosJ2++; }
-    aciertos++; primera=null; actualizarMarcador();
-    if(aciertos===totalParejas) ganar();
-  } else {
-    bloqueo=true; const temp=primera;
-    setTimeout(()=>{
-      temp.classList.remove('volteada'); temp.innerText='?';
-      carta.classList.remove('volteada'); carta.innerText='?';
-      primera=null; bloqueo=false;
-      turno = turno===1 ? 2 : 1;
-      actualizarMarcador();
-    }, 800);
+  if(s.ganador){
+    document.getElementById('mensaje').innerText = s.ganador==='Empate' ? '¡Empate!' : '🏆 ¡Gana ' + s.ganador + '! ' + s.puntos[0] + ' - ' + s.puntos[1];
+  }
+
+  // Si hay 2 cartas falladas, el que tiene el turno las tapa a los 1.5s
+  if(s.pendienteTapar && !yaTapando){
+    yaTapando=true;
+    setTimeout(async ()=>{
+      await fetch(URL, {method:'POST', body: JSON.stringify({action:'tapar', code: codigo})});
+      yaTapando=false;
+    }, 1500);
   }
 }
-
-async function ganar(){
-  clearInterval(timer);
-  const n1=document.getElementById('nombreJ1').value||'Jugador 1';
-  const n2=document.getElementById('nombreJ2').value||'Jugador 2';
-  const tema=document.getElementById('tema').value;
-  const nivel=document.getElementById('nivel').value;
-  let ganador = puntosJ1>puntosJ2 ? n1 : puntosJ2>puntosJ1 ? n2 : 'Empate';
-  document.getElementById('mensaje').innerText = ganador==='Empate' ? `¡Empate! ${puntosJ1} - ${puntosJ2}` : `🏆 ¡Gana ${ganador}! ${puntosJ1} - ${puntosJ2}`;
-  try{
-    await fetch(URL_APPSCRIPT, { method:'POST', body: JSON.stringify({ nombre: `${n1} (${puntosJ1}) vs ${n2} (${puntosJ2}) - Gana: ${ganador} | ${tema} | ${nivel}`, movimientos: movs, tiempo: segundos }) });
-  }catch(e){}
+async function jugar(i){
+  if(!estadoActual || !estadoActual.empezado) return alert('Espera a que se una tu amigo');
+  if(estadoActual.turno !== soyJugador) return alert('No es tu turno');
+  if(estadoActual.ganador) return;
+  await fetch(URL, {method:'POST', body: JSON.stringify({action:'jugar', code: codigo, index: i})});
+  actualizar();
 }
-
-document.getElementById('tema').addEventListener('change', reiniciar);
-document.getElementById('nivel').addEventListener('change', reiniciar);
-document.getElementById('nombreJ1').addEventListener('input', actualizarMarcador);
-document.getElementById('nombreJ2').addEventListener('input', actualizarMarcador);
-reiniciar();
 </script>
 </body>
 </html>
