@@ -10,10 +10,12 @@
   input,select,button{padding:12px;font-size:16px;border-radius:10px;border:1px solid #ccc;width:100%;margin:5px 0}
   button{background:black;color:white;border:none;cursor:pointer;font-weight:bold}
   button.sec{background:#2196F3}
+  button:disabled{opacity:0.5}
   #tablero{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:500px;margin:16px auto}
   .carta{aspect-ratio:1;background:#222;color:white;font-size:32px;display:flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer}
   .carta.volteada{background:white;color:black}
   .carta.acertada{background:#4CAF50}
+  .carta.bloqueada{opacity:0.7;cursor:not-allowed}
   .jugador{padding:10px;border-radius:10px;background:white;border:3px solid transparent;display:inline-block;min-width:140px;margin:5px}
   .jugador.activo{border-color:black;background:#fff8c5}
   #codigoSala{font-size:28px;font-weight:bold;letter-spacing:4px;color:#2196F3}
@@ -26,10 +28,10 @@
   <h2>1. Pon tu nombre</h2>
   <input id="miNombre" placeholder="Tu nombre, ej: Ana">
   <select id="tema"><option value="frutas">🍎 Frutas</option><option value="animales">🐶 Animales</option><option value="coches">🚗 Coches</option><option value="deportes">⚽ Deportes</option></select>
-  <button onclick="crear()">Crear partida y dar código</button>
+  <button id="btnCrear" onclick="crear()">Crear partida y dar código</button>
   <p>— o —</p>
   <input id="codigoUnirse" placeholder="Código, ej: AB12">
-  <button class="sec" onclick="unirse()">Unirse con código</button>
+  <button id="btnUnirse" class="sec" onclick="unirse()">Unirse con código</button>
   <p id="error"></p>
 </div>
 
@@ -48,81 +50,12 @@
 
 <script>
 const URL ="https://script.google.com/macros/s/AKfycbzSqV6HCN7zAhUzAaA3NDPgVUA_J1vKspr4EgC9gRx2G_aOHCg4A3Ryx_6x1ih2CI_wHA/exec";
-let codigo="", soyJugador=1, miNombre="", estadoActual=null, yaTapando=false;
+let codigo="", soyJugador=1, miNombre="", estadoActual=null, yaTapando=false, intervalo=null;
 
 async function crear(){
-  miNombre = document.getElementById('miNombre').value || 'Jugador 1';
+  miNombre = document.getElementById('miNombre').value.trim() || 'Jugador 1';
   const tema = document.getElementById('tema').value;
-  const res = await fetch(URL, {method:'POST', body: JSON.stringify({action:'crear', nombre: miNombre, tema})});
-  const data = await res.json();
-  codigo = data.code; soyJugador = 1;
-  entrarJuego();
-}
-async function unirse(){
-  miNombre = document.getElementById('miNombre').value || 'Jugador 2';
-  codigo = document.getElementById('codigoUnirse').value.toUpperCase().trim();
-  if(!codigo) return;
-  const res = await fetch(URL, {method:'POST', body: JSON.stringify({action:'unirse', code: codigo, nombre: miNombre})});
-  const data = await res.json();
-  if(data.error){ document.getElementById('error').innerText = 'Ese código no existe'; return; }
-  soyJugador = 2;
-  entrarJuego();
-}
-function entrarJuego(){
-  document.getElementById('lobby').style.display='none';
-  document.getElementById('juego').style.display='block';
-  document.getElementById('codigoSala').innerText = codigo;
-  setInterval(actualizar, 2000);
-  actualizar();
-}
-async function actualizar(){
-  const res = await fetch(URL + "?code=" + codigo);
-  const s = await res.json();
-  if(s.error) return;
-  estadoActual = s;
-  document.getElementById('n1').innerText = s.jugadores[0] || '...';
-  document.getElementById('n2').innerText = s.jugadores[1] || 'Esperando...';
-  document.getElementById('p1').innerText = s.puntos[0];
-  document.getElementById('p2').innerText = s.puntos[1];
-  document.getElementById('card1').classList.toggle('activo', s.turno===1);
-  document.getElementById('card2').classList.toggle('activo', s.turno===2);
-  document.getElementById('estado').innerText = s.empezado ? 'Partida en curso' : 'Esperando a que se una tu amigo...';
-  document.getElementById('turnoTexto').innerText = s.ganador ? '¡Fin!' : (s.turno===soyJugador ? '👉 ES TU TURNO' : 'Esperando turno del otro...');
-
-  const tablero = document.getElementById('tablero');
-  tablero.innerHTML='';
-  s.board.forEach((emoji, i)=>{
-    const div = document.createElement('div');
-    div.className='carta';
-    const esVolteada = s.volteadas.includes(i);
-    const esAcertada = s.acertadas.includes(i);
-    if(esAcertada){ div.classList.add('acertada'); div.innerText=emoji; }
-    else if(esVolteada){ div.classList.add('volteada'); div.innerText=emoji; }
-    else { div.innerText='?'; }
-    div.onclick = ()=> jugar(i);
-    tablero.appendChild(div);
-  });
-
-  if(s.ganador){
-    document.getElementById('mensaje').innerText = s.ganador==='Empate' ? '¡Empate!' : '🏆 ¡Gana ' + s.ganador + '! ' + s.puntos[0] + ' - ' + s.puntos[1];
-  }
-
-  // Si hay 2 cartas falladas, el que tiene el turno las tapa a los 1.5s
-  if(s.pendienteTapar && !yaTapando){
-    yaTapando=true;
-    setTimeout(async ()=>{
-      await fetch(URL, {method:'POST', body: JSON.stringify({action:'tapar', code: codigo})});
-      yaTapando=false;
-    }, 1500);
-  }
-}
-async function jugar(i){
-  if(!estadoActual || !estadoActual.empezado) return alert('Espera a que se una tu amigo');
-  if(estadoActual.turno !== soyJugador) return alert('No es tu turno');
-  if(estadoActual.ganador) return;
-  await fetch(URL, {method:'POST', body: JSON.stringify({action:'jugar', code: codigo, index: i})});
-  actualizar();
-}
-</script>
-</body>
-</html>
+  document.getElementById('btnCrear').disabled = true;
+  document.getElementById('btnCrear').innerText = 'Creando...';
+  try{
+    const res = await fetch(URL, {
