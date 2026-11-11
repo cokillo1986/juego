@@ -1,191 +1,40 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Memoria Online 2 Jugadores</title>
+<html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>KIMBALA VIKINGO</title>
 <style>
-  *{box-sizing:border-box}
-  body{font-family:system-ui,-apple-system,sans-serif;text-align:center;background:#eef2ff;padding:14px;margin:0;color:#1e293b}
-  h1{font-size:28px;margin:10px 0 4px}
-  .sub{color:#64748b;font-size:14px;margin:0 0 14px}
-  .caja{background:white;padding:18px;border-radius:20px;max-width:620px;margin:10px auto;box-shadow:0 10px 25px rgba(0,0,0,.08);text-align:left}
-  .caja.centro{text-align:center}
-  h2{font-size:18px;margin:6px 0 10px}
-  h3{font-size:15px;margin:16px 0 8px}
-  label{font-size:13px;font-weight:700;color:#475569}
-  input,select{padding:13px;font-size:16px;border-radius:12px;border:1.5px solid #e2e8f0;width:100%;margin:6px 0 10px;background:#f8fafc;outline:none}
-  input:focus,select:focus{border-color:#6366f1;background:white}
-  button{padding:14px;font-size:16px;border-radius:12px;border:none;width:100%;margin:6px 0;cursor:pointer;font-weight:800}
-  .btn-crear{background:#111827;color:white}
-  .btn-unirse{background:#2563eb;color:white}
-  .btn-salir{background:#f1f5f9;color:#334155}
-  button:disabled{opacity:.6}
-  .niveles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .nivelBtn{padding:14px 10px;border:2px solid #e2e8f0;background:white;color:#1e293b;border-radius:14px;cursor:pointer;font-weight:800;font-size:14px;text-align:center;line-height:1.3}
-  .nivelBtn small{font-weight:500;color:#64748b;font-size:12px}
-  .nivelBtn.sel{border-color:#111827;background:#fef9c3}
-  .nivelBtn.todo{grid-column:span 2;background:#7c3aed;color:white;border-color:#7c3aed}
-  .nivelBtn.todo small{color:#ddd6fe}
-  .nivelBtn.todo.sel{border-color:#111827;box-shadow:0 0 0 2px #111827}
-  .divider{text-align:center;color:#94a3b8;font-size:13px;margin:12px 0}
-  .nota{font-size:12px;color:#64748b;text-align:center;margin:6px 0}
-  #codigoSala{font-size:32px;font-weight:900;letter-spacing:5px;color:#2563eb;margin:4px 0}
-  .marcador{display:flex;gap:10px;justify-content:center;margin:12px 0}
-  .jugador{flex:1;padding:12px;border-radius:14px;background:#f8fafc;border:3px solid transparent}
-  .jugador.activo{border-color:#111827;background:#fef9c3}
-  .jugador b{font-size:15px}
-  .jugador .pts{font-size:13px;color:#64748b}
-  .jugador .num{font-size:22px;font-weight:900}
-  #turnoTexto{font-weight:800;margin:8px 0}
-  #infoNivel{display:inline-block;background:#eef2ff;color:#4338ca;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700}
-  #tablero{display:grid;gap:7px;max-width:620px;margin:16px auto}
-  .carta{aspect-ratio:1;background:#1e293b;color:white;font-size:26px;display:flex;align-items:center;justify-content:center;border-radius:12px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);font-weight:700}
-  .carta.volteada{background:white;color:#111827;border:2px solid #e2e8f0}
-  .carta.acertada{background:#22c55e;color:white}
-  .carta.bloqueada{opacity:.7;cursor:not-allowed}
-  #mensaje{font-size:18px;font-weight:800}
-  .top-juego{display:flex;justify-content:space-between;align-items:center}
-  .pill{font-size:12px;background:#f1f5f9;padding:6px 10px;border-radius:999px;font-weight:700}
-</style>
-</head>
-<body>
-<h1>🧠 Memoria Online</h1>
-<p class="sub">Juega con tu amigo, en tiempo real</p>
-
-<div id="lobby" class="caja">
-  <h2>👤 Tu nombre</h2>
-  <input id="miNombre" placeholder="Ej: Ana">
-  
-  <h3>🎯 Elige nivel - hasta 30 casillas</h3>
-  <div class="niveles">
-    <div class="nivelBtn" data-nivel="facil" onclick="elegirNivel('facil')">😊 Fácil<br><small>8 casillas • 4 parejas</small></div>
-    <div class="nivelBtn sel" data-nivel="medio" onclick="elegirNivel('medio')">😐 Medio<br><small>16 casillas • 8 parejas</small></div>
-    <div class="nivelBtn" data-nivel="dificil" onclick="elegirNivel('dificil')">😤 Difícil<br><small>24 casillas • 12 parejas</small></div>
-    <div class="nivelBtn" data-nivel="extremo" onclick="elegirNivel('extremo')">🔥 Extremo<br><small>30 casillas • 15 parejas</small></div>
-    <div class="nivelBtn todo" data-nivel="todo" onclick="elegirNivel('todo')">🌪️ TODO MEZCLADO<br><small>30 casillas • frutas + animales + coches + deportes</small></div>
-  </div>
-
-  <h3>🎨 Elige tema <small style="font-weight:400;color:#64748b">(si es TODO, se ignora)</small></h3>
-  <select id="tema"><option value="frutas">🍎 Frutas</option><option value="animales">🐶 Animales</option><option value="coches">🚗 Coches</option><option value="deportes">⚽ Deportes</option></select>
-
-  <button id="btnCrear" class="btn-crear" onclick="crear()">Crear partida y dar código →</button>
-  <div class="divider">— o si te han pasado un código —</div>
-  <label>Código de partida</label>
-  <input id="codigoUnirse" placeholder="Ej: AB12" style="text-transform:uppercase">
-  <button id="btnUnirse" class="btn-unirse" onclick="unirse()">Unirse con código</button>
-  <p class="nota">Cualquiera de los dos puede crear la partida. El que crea, le pasa el código al otro.</p>
-  <p id="error" style="color:#dc2626;font-weight:700;text-align:center"></p>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:Arial;color:#fff}
+#game{position:fixed;inset:0;width:100vw;height:100dvh;background:url('fondo.jpg') center/cover no-repeat;overflow:hidden}
+#vikingo{position:absolute;bottom:70px;left:80px;width:170px;height:230px;background:url('vikingo.png') center/contain no-repeat;filter:drop-shadow(0 10px 15px rgba(0,0,0,.7))}
+#vikingo.atacando{transform:scale(1.15) rotate(-8deg)}
+.lobo{position:absolute;bottom:70px;width:90px;height:90px;font-size:70px}
+.gema{position:absolute;font-size:40px;filter:drop-shadow(0 0 12px gold);animation:flota 1s infinite alternate}
+@keyframes flota{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+#hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;z-index:10}
+.pill{background:rgba(0,0,0,.75);border:2px solid #ffcc00;border-radius:20px;padding:8px 14px;font-weight:bold}
+#ctrl{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:space-between;padding:0 12px;z-index:10}
+.joy{width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.25);border:2px solid #fff;position:relative}
+#stick{width:52px;height:52px;border-radius:50%;background:#ffcc00;position:absolute;left:34px;top:34px}
+.btn{width:64px;height:64px;border-radius:50%;border:3px solid #fff;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:26px}
+#atk{width:82px;height:82px;background:#c62828;font-size:34px}
+#start{position:absolute;inset:0;background:rgba(0,0,0,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:20;padding:20px}
+#play{background:#ffcc00;border:none;padding:15px 30px;border-radius:14px;font-weight:bold;font-size:20px}
+</style></head><body>
+<div id="game">
+<div id="hud"><div class="pill">❤️ <span id="life">100</span> | 💎 <span id="gems">0</span>/7</div><div class="pill">🪙 <span id="coins">0</span> | KIMBALA</div></div>
+<div id="vikingo"></div>
+<div id="ctrl"><div style="display:flex;gap:10px;align-items:flex-end"><div class="joy" id="joy"><div id="stick"></div></div><div class="btn" id="jump">⬆️</div></div><div class="btn" id="atk">🪓</div></div>
+<div id="start"><h1 style="color:#ffcc00;font-size:34px">KIMBALA<br>VIKINGO</h1><p style="margin:12px 0;line-height:1.5">TÚ de vikingo en Valencia nevada<br>Recoge 7 gemas, mata lobos<br>📳 Vibra al coger gemas</p><button id="play">▶️ JUGAR</button></div>
 </div>
-
-<div id="juego" style="display:none">
-  <div class="caja centro">
-    <div class="top-juego"><span class="pill" id="infoNivel"></span><span class="pill" id="estado">Esperando...</span></div>
-    <p style="margin:10px 0 0;color:#64748b;font-size:13px">Comparte este código con tu amigo:</p>
-    <div id="codigoSala"></div>
-    <div class="marcador">
-      <div id="card1" class="jugador"><b id="n1"></b><div class="pts"><span class="num" id="p1">0</span> parejas</div></div>
-      <div id="card2" class="jugador"><b id="n2"></b><div class="pts"><span class="num" id="p2">0</span> parejas</div></div>
-    </div>
-    <p id="turnoTexto"></p>
-  </div>
-  <div id="tablero"></div>
-  <p id="mensaje"></p>
-  <div style="max-width:620px;margin:0 auto"><button class="btn-salir" onclick="location.reload()">↩ Salir / Nueva partida</button></div>
-</div>
-
 <script>
-const URL ="https://script.google.com/macros/s/AKfycbwaL2m9_YthNs0RLq0ObioeI-_BDKqOtFlxf3bacHDuenLUD0V_eAgJNJeYxO7FNA9HcA/exec";
-let codigo="", soyJugador=1, miNombre="", estadoActual=null, yaTapando=false, intervalo=null, nivelSel='medio';
-function elegirNivel(n){ nivelSel=n; document.querySelectorAll('.nivelBtn').forEach(b=>b.classList.toggle('sel', b.dataset.nivel===n)); }
-async function crear(){
-  miNombre = document.getElementById('miNombre').value.trim() || 'Jugador 1';
-  const tema = document.getElementById('tema').value;
-  document.getElementById('btnCrear').disabled = true;
-  document.getElementById('btnCrear').innerText = 'Creando...';
-  try{
-    const res = await fetch(URL, {method:'POST', body: JSON.stringify({action:'crear', nombre: miNombre, tema, nivel: nivelSel})});
-    const data = await res.json();
-    if(data.error){ document.getElementById('error').innerText = data.error; document.getElementById('btnCrear').disabled=false; document.getElementById('btnCrear').innerText='Crear partida y dar código →'; return; }
-    codigo = data.code; soyJugador = 1;
-    entrarJuego();
-  }catch(e){ document.getElementById('error').innerText = 'Error de conexión'; document.getElementById('btnCrear').disabled=false; document.getElementById('btnCrear').innerText='Crear partida y dar código →'; }
-}
-async function unirse(){
-  miNombre = document.getElementById('miNombre').value.trim() || 'Jugador 2';
-  codigo = document.getElementById('codigoUnirse').value.toUpperCase().trim();
-  if(!codigo){ document.getElementById('error').innerText='Pon el código'; return; }
-  try{
-    const res = await fetch(URL, {method:'POST', body: JSON.stringify({action:'unirse', code: codigo, nombre: miNombre})});
-    const data = await res.json();
-    if(data.error){ document.getElementById('error').innerText = 'Ese código no existe'; return; }
-    soyJugador = 2;
-    entrarJuego();
-  }catch(e){ document.getElementById('error').innerText = 'Error de conexión'; }
-}
-function entrarJuego(){
-  document.getElementById('lobby').style.display='none';
-  document.getElementById('juego').style.display='block';
-  document.getElementById('codigoSala').innerText = codigo;
-  if(intervalo) clearInterval(intervalo);
-  intervalo = setInterval(actualizar, 1500);
-  actualizar();
-}
-async function actualizar(){
-  if(!codigo) return;
-  try{
-    const res = await fetch(URL + "?code=" + codigo);
-    const s = await res.json();
-    if(s.error) return;
-    estadoActual = s;
-    document.getElementById('n1').innerText = s.jugadores[0] || '...';
-    document.getElementById('n2').innerText = s.jugadores[1] || 'Esperando...';
-    document.getElementById('p1').innerText = s.puntos[0];
-    document.getElementById('p2').innerText = s.puntos[1];
-    document.getElementById('card1').classList.toggle('activo', s.turno===1);
-    document.getElementById('card2').classList.toggle('activo', s.turno===2);
-    document.getElementById('estado').innerText = s.empezado ? 'Partida en curso' : 'Esperando amigo...';
-    const nombresNivel = {facil:'😊 Fácil • 8 casillas', medio:'😐 Medio • 16 casillas', dificil:'😤 Difícil • 24 casillas', extremo:'🔥 Extremo • 30 casillas', todo:'🌪️ TODO • 30 casillas'};
-    document.getElementById('infoNivel').innerText = nombresNivel[s.nivel] || '';
-    document.getElementById('turnoTexto').innerText = s.ganador ? '¡Fin!' : (!s.empezado ? 'Comparte el código' : (s.turno===soyJugador ? '👉 ES TU TURNO' : 'Esperando turno del otro...'));
-    const tablero = document.getElementById('tablero');
-    tablero.style.gridTemplateColumns = `repeat(${s.columnas || 4}, 1fr)`;
-    tablero.innerHTML='';
-    s.board.forEach((emoji, i)=>{
-      const div = document.createElement('div');
-      div.className='carta';
-      const esVolteada = s.volteadas.includes(i);
-      const esAcertada = s.acertadas.includes(i);
-      if(esAcertada){ div.classList.add('acertada'); div.innerText=emoji; }
-      else if(esVolteada){ div.classList.add('volteada'); div.innerText=emoji; }
-      else { div.innerText='?'; }
-      const bloqueado = s.ganador || !s.empezado || s.turno !== soyJugador || s.pendienteTapar || s.volteadas.length >= 2;
-      if(bloqueado) div.classList.add('bloqueada');
-      div.onclick = ()=> jugar(i);
-      tablero.appendChild(div);
-    });
-    if(s.ganador){ document.getElementById('mensaje').innerText = s.ganador==='Empate' ? '¡Empate!' : '🏆 ¡Gana ' + s.ganador + '! ' + s.puntos[0] + ' - ' + s.puntos[1]; }
-    else { document.getElementById('mensaje').innerText = ''; }
-    if(s.pendienteTapar && s.turno === soyJugador && !yaTapando){
-      yaTapando=true;
-      setTimeout(async ()=>{
-        await fetch(URL, {method:'POST', body: JSON.stringify({action:'tapar', code: codigo, jugador: soyJugador})});
-        yaTapando=false;
-        actualizar();
-      }, 1500);
-    }
-  }catch(e){}
-}
-async function jugar(i){
-  if(!estadoActual || !estadoActual.empezado) return alert('Espera a que se una tu amigo');
-  if(estadoActual.turno !== soyJugador) return alert('No es tu turno');
-  if(estadoActual.ganador) return;
-  if(estadoActual.pendienteTapar) return;
-  if(estadoActual.volteadas.includes(i) || estadoActual.acertadas.includes(i)) return;
-  if(estadoActual.volteadas.length >= 2) return;
-  await fetch(URL, {method:'POST', body: JSON.stringify({action:'jugar', code: codigo, index: i, jugador: soyJugador})});
-  actualizar();
-}
-</script>
-</body>
-</html>
+let x=80,gems=0,coins=0,keys={l:false,r:false},run=false;
+let vik=document.getElementById('vikingo'), game=document.getElementById('game');
+function crear(){for(let i=0;i<7;i++){let g=document.createElement('div');g.className='gema';g.textContent='💎';g.style.left=(500+i*350)+'px';g.style.bottom=(180+Math.random()*120)+'px';g.dataset.x=500+i*350;game.appendChild(g);}for(let i=0;i<5;i++){let l=document.createElement('div');l.className='lobo';l.textContent='🐺';l.style.left=(800+i*400)+'px';l.dataset.x=800+i*400;game.appendChild(l);}}
+function loop(){if(!run)return;if(keys.l)x-=6;if(keys.r)x+=6;if(x<0)x=0;if(x>900)x=900;vik.style.left=x+'px';document.querySelectorAll('.gema').forEach(g=>{if(Math.abs(parseInt(g.dataset.x)-x)<70){g.remove();gems++;coins+=100;if(navigator.vibrate)navigator.vibrate(60);document.getElementById('gems').textContent=gems;document.getElementById('coins').textContent=coins;if(gems>=7){alert('🏆 ¡VICTORIA KIMBALA! ¡7 gemas!');run=false;}}});requestAnimationFrame(loop);}
+document.getElementById('play').onclick=()=>{document.getElementById('start').style.display='none';run=true;crear();loop();if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{})};
+let joy=document.getElementById('joy'),stick=document.getElementById('stick');
+joy.addEventListener('touchmove',e=>{let r=joy.getBoundingClientRect(),dx=e.touches[0].clientX-(r.left+r.width/2);keys.l=dx<-15;keys.r=dx>15;stick.style.left=(34+Math.max(-28,Math.min(28,dx)))+'px';});joy.addEventListener('touchend',()=>{keys.l=false;keys.r=false;stick.style.left='34px'});
+document.getElementById('jump').addEventListener('touchstart',()=>{vik.style.bottom='180px';setTimeout(()=>vik.style.bottom='70px',400)});
+document.getElementById('atk').addEventListener('touchstart',()=>{vik.classList.add('atacando');if(navigator.vibrate)navigator.vibrate(40);setTimeout(()=>vik.classList.remove('atacando'),200)});
+</script></body></html>
